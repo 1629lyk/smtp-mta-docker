@@ -56,14 +56,75 @@ cat ~/Maildir/new/*
 ---
 
 ## Debugging
+If email is not arriving at the destination user, here are a few steps to debug the issue:
 
-* Run `postfix start-fg` to see logs in real time.
-* Check `/etc/hosts` and `mydestination` if mail doesn't deliver.
-* Watch delivery with:
+---
+
+### 1. Check the Mail Queue
+
+Postfix holds failed or delayed messages in a **mail queue**.
+
+Run the following inside the container:
 
 ```bash
-watch -n 1 'ls ~/Maildir/new'
+postqueue -p
 ```
+
+* If the queue is **empty**, it will say: `Mail queue is empty`
+* If messages are **stuck**, it will list their queue IDs and status
+
+---
+
+### 2. Force Queue Flush
+
+Try resending all queued emails:
+
+```bash
+postqueue -f
+```
+
+This forces Postfix to immediately attempt delivery again.
+
+---
+
+### 3. Delete Queued Emails (Careful)
+
+To delete all queued messages (only use if you're sure):
+
+```bash
+postsuper -d ALL
+```
+
+To delete a specific message (use queue ID from `postqueue -p`):
+
+```bash
+postsuper -d <queue-id>
+```
+
+---
+
+### 4. Check Maildir of Recipient
+
+For example, inside the `bob` container:
+
+```bash
+cat /home/bob/Maildir/new/*
+```
+
+If there are no files, no mail has been delivered yet.
+
+---
+
+### 5. Check Logs
+
+If needed, examine the Postfix logs (inside the container):
+
+```bash
+tail -f /var/log/mail.log
+```
+
+You may need to create `/var/log/mail.log` and configure `rsyslog` if logs aren’t appearing by default.
+
 
 ---
 
